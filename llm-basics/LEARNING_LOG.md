@@ -36,7 +36,18 @@ Wrote input and history outside the while loop. This would cause the chat to nev
 When appending content to assistant, all the message content is supposed to be passed.
 
 ## Day 3 — Structured outputs
+The field description is the actual prompt. Claude will be looking at that when assigning values to the fields.
 
+
+The first part of the process is the API constraints what claude can generate(json matching the schema)
+Pydantic(via parse()) does the "validation" for the output JSON with the BaseModel. In actuality it takes the output and creates a new structured output and then tries to fit it. If it is not able to it raise the ValidationError. The client.messages.parse itself raises the error so it is enclosed in a try/except block. 
+
+raise...from err is a way to chain exceptions and hence call your own exception.
+parse() validates eagerly and raises ValidationError on truncation(max_tokens) 
+The code should handle stop reason like refusal and max_tokens gracefully as these errors are prioritized over the structured output.
+We did not handle it gracefully today but we did make it fail loudly with a clear message which is a good practice.
+
+The extract_by_hand gave a correct output in the cases I ran today. But that can be flaky and hence structured output is preferred.
 ## Day 4 — Tokens and cost
 
 ## Day 5 — Prompt caching

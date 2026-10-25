@@ -13,24 +13,40 @@ Done when: PASS prints for all sample emails in data/emails.txt.
 """
 
 from pathlib import Path
+import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from typing import Literal
 
 from common import MODEL, client, failed, passed
 
 
 class Contact(BaseModel):
-    # TODO: add fields. Suggested: name (str), email (str | None), company (str | None),
-    # phone (str | None), intent (one of "sales", "support", "partnership", "other").
-    # Use Field(description=...) to tell the model what each field means.
-    # Hint for intent: typing.Literal["sales", "support", "partnership", "other"]
-    pass
+    name: str = Field(description="Name of the email sender")
+    email: str | None = Field(description="Email ID of the email sender, null if not mentioned")
+    company: str | None = Field(description="Company of the email sender, null if not mentioned")
+    phone: str | None = Field(description="Phone number of the email sender, null if not mentioned")
+    intent: Literal["sales", "support", "partnership", "other"] = Field(description="The sender's intent for emailing. Assign the email to one of the four categories based on the content or ask in the email. sales = Interested in buying the product. support = Wants support with the product. partnership = Asking about a business partnership. other = None of the other intents")
 
+class JSONOutputError(Exception):
+    """Raised when there is an error in the output json"""
 
 def extract_contact(email_text: str) -> Contact:
     """Extract a Contact from one email using client.messages.parse."""
-    # TODO
-    raise NotImplementedError
+    try: 
+        response = client.messages.parse(
+            model=MODEL,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": email_text}],
+            output_format=Contact,
+        )
+        
+    except ValidationError as error:
+        raise JSONOutputError("The output gave an error in the form of refusal or max_tokens") from error
+
+    if response.stop_reason == "end_turn":
+        return response.parsed_output
+    raise JSONOutputError(f"The output gave an error: {response.stop_reason}")
 
 
 def extract_by_hand(email_text: str) -> dict:
@@ -38,9 +54,20 @@ def extract_by_hand(email_text: str) -> dict:
 
     Do this to feel why structured outputs exist. Note how often it breaks (or doesn't).
     """
-    # TODO
-    raise NotImplementedError
+    message = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": f"Generate a JSON output from this input email where the field are name, email, company, phone, intent. Email, company, phone, are to be set to null if not mentioned. Assign the email to one of the four categories based on the content or ask in the email. sales = Interested in buying the product. support = Wants support with the product. partnership = Asking about a business partnership. other = None of the other intents. Only return the json in the format I asked for. Add nothing else in the output. <email> {email_text} </email>"}],
+    )
 
+    if message.stop_reason == "end_turn":
+        json_string = ''.join(res.text for res in message.content if res.type == "text")
+        try:
+            return json.loads(json_string)
+        except json.JSONDecodeError as e:
+            raise JSONOutputError("The JSON output gave an error while parsing") from e
+    raise JSONOutputError(f"The output gave an error: {message.stop_reason}")
+    
 
 def check() -> None:
     emails = Path("data/emails.txt").read_text().split("\n---\n")
@@ -52,7 +79,7 @@ def check() -> None:
             return failed("name", f"expected {name}, got {c.name}")
         if c.intent != intent:
             return failed("intent", f"expected {intent} for {name}, got {c.intent}")
-    print("\nBy hand:", extract_by_hand(emails[0]))
+    print("\nBy hand:", extract_by_hand(emails[2]))
     passed("Day 3 structured outputs")
 
 
