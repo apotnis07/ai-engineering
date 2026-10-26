@@ -49,5 +49,13 @@ We did not handle it gracefully today but we did make it fail loudly with a clea
 
 The extract_by_hand gave a correct output in the cases I ran today. But that can be flaky and hence structured output is preferred.
 ## Day 4 — Tokens and cost
+The count_tokens() method estimates input tokens so that we can estimate how much an input or a prompt would cost before sending it
+It can also estimate for images and pdfs but url is not supported and should be given in the base64 format
+csv.DictWriter handles the dict writing very well. It maps dict keys to columns, and writeheader() writes the header row for you.
+input token cost is usually far less than output token cost considering not a long context, so rather than focusing on making the prompt small, try to make the output short
+datetime.now().isoformat(timespec="seconds")  # 2026-10-26T14:03:12 is a ISO 8601 standard format and spreadsheets and pandas parse it without help
+
+What broke:
+usage["input_tokens"] raised TypeError because usage is a Pydantic object, and count_tokens returned an object instead of an int
 
 ## Day 5 — Prompt caching

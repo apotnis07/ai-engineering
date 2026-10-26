@@ -14,7 +14,7 @@ Deliverable (Nov 5): this repo pushed to GitHub: CLI chat with streaming, 3 tool
 | Tue Oct 27 | `day5_caching.py` | Prompt caching savings (needs `data/long_doc.txt`, 6k+ words; not added yet) | Prompt caching |
 | Wed Oct 28 – Thu Oct 29 | — | Buffer: catch up on slipped days, try a stretch goal, push to GitHub | — |
 
-Done = each file prints `✅ PASS`, has 2–3 lines in `LEARNING_LOG.md`, and the folder is pushed to GitHub by Thu Oct 29 (the repo isn't a git repo yet: `git init` first, and confirm `.env` is gitignored before the first commit).
+Done = each file prints `✅ PASS`, has 2–3 lines in `LEARNING_LOG.md`, and the folder is pushed to GitHub by Thu Oct 29 (this is part of the `ai-engineering` git repo, already initialized with commits for each day; keep `.env` gitignored).
 Tick each day's Done checkbox in the Notion Agenda.
 
 ## Week 2 (Oct 30 – Nov 5): tool calling by hand
