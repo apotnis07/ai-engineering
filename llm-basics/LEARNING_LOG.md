@@ -59,3 +59,68 @@ What broke:
 usage["input_tokens"] raised TypeError because usage is a Pydantic object, and count_tokens returned an object instead of an int
 
 ## Day 5 — Prompt caching
+You can cache for 5m or 1h. 1h is paid.
+When you cache for 5m, for example, the time starts from when you first send a request. So, if a thinking block takes 4 minutes to answer you only have about a minute of cache ttl.
+That does not mean the conversation has to last for 5 mins for the messages to stay cached. The 5 minutes renew after every turn within the 5m window. 
+So the chat can go on for hours, but messages should not be more than 5m apart.
+When within cached window ttft is faster.
+The cost of prefix(previous messages in memory) is ~10% of input price.
+cache_read_input_tokens are required though to read the cache. --> available to view in response.usage
+Caching makes the tokens you resend cheaper.
+
+
+Setup
+P: tokens in the prefix you reuse (the document, or the chat history)
+c: normal input price per token
+w: cache-write multiplier. It’s 1.25 in your PRICES (0.125 ÷ 0.10 for Haiku)
+r: cache-read multiplier. It’s 0.1 for Haiku and 0.05 for Opus in your PRICES
+n: number of calls that reuse the prefix
+
+Output tokens and the new question at the end cost the same either way, so they cancel out of the comparison.
+
+Case 1: every call lands within the TTL
+No cache:   n · P · c
+Cache:      P · c · (w + (n − 1) · r)      ← 1 write, then n−1 reads
+Caching wins when
+
+w + (n − 1)·r  <  n      →      n  >  (w − r) / (1 − r)
+
+With Haiku’s numbers: (1.25 − 0.1) / (1 − 0.1) = 1.28, so caching pays off from the 2nd call. A prefix used once costs 25% more (w − 1), and one reuse already puts you ahead.
+
+n_calls	  No cache	Cache	Saving
+1	        1.00	1.25	−25%
+2	        2.00	1.35	33%
+5	        5.00	1.65	67%
+20	        20.00	3.15	84%
+∞		            	    → 1 − r = 90%
+
+Case 2: some calls arrive after the cache expired
+
+Let p be the fraction of calls that land within the TTL of the previous one. Each call is either a hit (r) or a rewrite (w):
+
+expected cost per call (cache) = p·r + (1 − p)·w
+caching wins when  p·r + (1 − p)·w < 1   →   p  >  (w − 1) / (w − r)
+
+Haiku: 0.25 / 1.15 ≈ 22%. If more than about 1 in 5 calls arrives within 5 minutes of the previous one, caching is cheaper on average.
+
+
+Automatic caching vs Explicit 
+For system prompts, both types of caching cache it.
+But the order of caching is tools -> system -> messages
+
+So say a cache with user A and messages M is built and all the users share the same system prompt we would get tools -> system -> Msg(A) with automatic caching
+but with explicit system caching tools -> system
+
+In the case of automatic caching of A, the next messages in A's chat window would cache hit. But they won't in B's window. 
+Whereas the explicit system cache would hit in B.
+
+Situation	            Without the system breakpoint	    With it
+Next turn, same chat	hits B	                            hits B
+Brand-new chat, 
+same system prompt	    miss: pays to write everything	    hits A, writes only the messages
+An earlier message	    miss	                            hits A
+edited
+
+
+Key takeaway: Place cache_control on the last block whose prefix is identical across the requests you want to share a cache. In a growing conversation the final block works as long as each turn adds fewer than 20 blocks: earlier content never changes, so the next request's lookback finds the prior write. For a prompt with a varying suffix (timestamps, per-request context, the incoming message), place the breakpoint at the end of the static prefix, not on the varying block.
+

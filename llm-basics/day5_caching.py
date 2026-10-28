@@ -16,6 +16,7 @@ A public-domain book chapter from gutenberg.org works well.
 Done when: the second call reads from the cache and PASS prints the savings.
 """
 
+from datetime import datetime
 from pathlib import Path
 
 from common import MODEL, client, failed, passed
@@ -24,7 +25,7 @@ from common import MODEL, client, failed, passed
 from day4_cost import cost_usd, log_call
 
 DOC = Path("data/long_doc.txt")
-
+SYSTEM_PROMPT = f"You are an expert on the following document. Answer any questions relating to it. <doc>{DOC.read_text()}</doc>"
 
 def ask_about_doc(question: str, use_cache: bool):
     """Ask a question about the document, which goes in the system prompt.
@@ -32,8 +33,25 @@ def ask_about_doc(question: str, use_cache: bool):
     With use_cache=True, mark the system block with cache_control.
     Keep the system text byte-for-byte identical between calls.
     """
-    # TODO
-    raise NotImplementedError
+    
+    system_block = [
+        {
+            "type" : "text",
+            "text" : SYSTEM_PROMPT,
+        }
+    ]
+
+    if use_cache:
+        system_block[0]["cache_control"] = {"type" : "ephemeral"}
+
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        system=system_block,
+        messages=[{"role" : "user", "content" : question}],
+    )
+
+    return response
 
 
 def break_the_cache() -> None:
@@ -41,10 +59,29 @@ def break_the_cache() -> None:
 
     This is the most common real-world caching bug.
     """
-    # TODO
-    raise NotImplementedError
+    system_block = [
+        {
+            "type" : "text",
+            "text" : datetime.now().isoformat(timespec="seconds"),
+        },
+        {
+            "type" : "text",
+            "text" : SYSTEM_PROMPT,
+            "cache_control" : {"type" : "ephemeral"}
+        }
+    ]
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        system=system_block,
+        messages=[{"role": "user", "content": "What is the main theme?"}]
+    )
 
+    print(response.usage)
 
+    if not response.usage.cache_read_input_tokens:
+        print("Cache broken")
+    
 def check() -> None:
     if not DOC.exists() or len(DOC.read_text().split()) < 6000:
         return failed("setup", "put at least ~6,000 words in data/long_doc.txt first")
