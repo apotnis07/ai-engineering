@@ -135,6 +135,20 @@ requests is a convenient package used to call APIs and pass in params.
 
 
 ## Day 7 — Tool-call cycle
+The tool_result go into the user message after getting tool_use blocks from the assistant.
+The same tool might be called multiple times instead of a single call if disable_parallel_tool_use is True. 
+For eg. 
+user      | How much warmer is Mumbai than Paris right now?
+assistant | tool_use get_weather
+user      | tool_result 'Mumbai, India: 35.6°C'
+assistant | tool_use get_weather
+user      | tool_result 'Paris, France: 9.4°C'
+assistant | tool_use calculator
+user      | tool_result '26.200000000000003'
+assistant | text
+ANSWER: Mumbai is about 26.2°C warmer than Paris right now... how to display like this
+Here the parallel_use was disabled.
+
 
 ## Day 8 — Tool errors
 
