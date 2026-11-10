@@ -39,7 +39,7 @@ Each phase gets its own project folder in this repo.
 
 ## Current status
 
-- Current week: **Week 1** (Phase 1, Oct 23 – Oct 29), working in `llm-basics/`. Started Fri Oct 23.
+- Current week: **Week 2** (Phase 1, Oct 30 – Nov 5), working in `llm-basics/`. Started Fri Oct 30.
 - Update this line at the start of every week.
 
 ## Starting a new week or phase (Claude: do this every time)

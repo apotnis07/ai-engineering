@@ -124,3 +124,20 @@ edited
 
 Key takeaway: Place cache_control on the last block whose prefix is identical across the requests you want to share a cache. In a growing conversation the final block works as long as each turn adds fewer than 20 blocks: earlier content never changes, so the next request's lookback finds the prior write. For a prompt with a varying suffix (timestamps, per-request context, the incoming message), place the breakpoint at the end of the static prefix, not on the varying block.
 
+
+## Day 6 — Tool schemas
+resolve() is used to get the absolute path.
+is_relative_to() is used to get the net path and to check if a file exists in reference to another file. For example if emails.txt is in the data file and we do absolutePath.is_relative_to(DATA_DIR.resolve()) it gives True or False if the absolute path of emails.txt is a sub-folder of DATA_DIR or not.
+When writing description for tools use the format - What, When, For example
+ast.parse is used to check if an expression is valid when used in 'eval' mode.
+When using ast it is called recursively to give individual nodes that stores operands and operators.
+requests is a convenient package used to call APIs and pass in params.
+
+
+## Day 7 — Tool-call cycle
+
+## Day 8 — Tool errors
+
+## Day 9 — Parallel tools
+
+## Deliverable — Chat CLI
