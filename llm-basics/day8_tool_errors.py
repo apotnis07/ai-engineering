@@ -23,15 +23,29 @@ def run_one_safely(tool_use) -> dict:
 
     On failure set "is_error": True, with content naming what went wrong.
     """
-    # TODO
-    raise NotImplementedError
+    result = {}
+    try:
+        content = run_tool(tool_use.name, tool_use.input)
+        result = {"type": "tool_result", "tool_use_id": tool_use.id, "content": content}
+
+    except Exception as e:
+        result = {
+            "type": "tool_result",
+            "tool_use_id": tool_use.id,
+            "content": f'{type(e).__name__}: {e}',
+            "is_error": True,
+        }
+
+    return result
 
 
 def run_tools_safely(tool_uses: list) -> list[dict]:
     """run_one_safely for each block, in order."""
-    # TODO
-    raise NotImplementedError
-
+    results = []
+    for tool_use in tool_uses:
+        result = run_one_safely(tool_use)
+        results.append(result)
+    return results
 
 def fake_call(call_id: str, name: str, tool_input: dict):
     """A stand-in for a tool_use block, so tests don't need the API."""
@@ -51,8 +65,15 @@ def check() -> None:
     ]
     results = run_tools_safely(bad_calls)
     for call, result in zip(bad_calls, results):
-        if not result.get("is_error") or result.get("tool_use_id") != call.id or not result.get("content"):
-            return failed("errors", f"{call.name} should give an is_error result with a message: {result}")
+        if (
+            not result.get("is_error")
+            or result.get("tool_use_id") != call.id
+            or not result.get("content")
+        ):
+            return failed(
+                "errors",
+                f"{call.name} should give an is_error result with a message: {result}",
+            )
 
     answer, messages = run_tool_cycle(
         "Use read_file to open email.txt. If that fails, try emails.txt, then tell me how many lines it has.",
@@ -68,7 +89,10 @@ def check() -> None:
     ]
     print([bool(result.get("is_error")) for result in results])
     if not any(result.get("is_error") for result in results):
-        return failed("recovery", "the model never hit an error; read_file('email.txt') should fail")
+        return failed(
+            "recovery",
+            "the model never hit an error; read_file('email.txt') should fail",
+        )
     if results[-1].get("is_error"):
         return failed("recovery", "the model's last tool call should have worked")
     passed("Day 8 tool errors")

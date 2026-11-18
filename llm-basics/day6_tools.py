@@ -172,10 +172,13 @@ def read_file(path: str) -> str:
     """
     absolutePath = (DATA_DIR / path).resolve()
 
-    if absolutePath.is_relative_to(DATA_DIR.resolve()):
-        return absolutePath.read_text()
-    else:
+    if not absolutePath.is_relative_to(DATA_DIR.resolve()):
         raise PermissionError("Only files inside data/ can be read.")
+        
+    try:
+        return absolutePath.read_text()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"No file named {path} in the data folder.") from None
 
 
 TOOL_FUNCTIONS = {
